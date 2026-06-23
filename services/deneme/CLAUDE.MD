@@ -1,0 +1,1 @@
+mail'lerime bak npx playwrite ile açarak

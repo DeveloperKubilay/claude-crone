@@ -1,0 +1,21 @@
+{
+  "name": "multi-service-scheduler",
+  "version": "1.0.0",
+  "description": "Claude ile otomatik service scheduler",
+  "main": "scheduler.js",
+  "scripts": {
+    "start": "node scheduler.js",
+    "dev": "node scheduler.js"
+  },
+  "keywords": [
+    "cron",
+    "scheduler",
+    "automation",
+    "claude"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "node-cron": "^3.0.3"
+  }
+}
