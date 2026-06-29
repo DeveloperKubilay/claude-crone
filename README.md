@@ -1,19 +1,19 @@
 # Service Scheduler
 
-Otomatik cron scheduler.
+Automatic cron scheduler.
 
-## Başlat
+## Start
 
 ```bash
 npm start
 ```
 
-## Service Ekle
+## Add Service
 
 ```
 services/service-name/
   ├── settings.json
-  └── claude.md (opsiyonel)
+  └── claude.md 
 ```
 
 **settings.json:**
@@ -26,13 +26,13 @@ services/service-name/
 }
 ```
 
-Her cron: `cd services/service-name && claude --model test --once`
+How to run each cron: `cd services/service-name && claude --model test --once`
 
-Config değişiklikleri max 1dk'da algılanır.
+Config changes are detected within 1 minute.
 
 ## Cron
 
-- `*/5 * * * *` = Her 5dk
-- `*/1 * * * *` = Her 1dk
-- `0 * * * *` = Her saat
-- `0 9 * * 1-5` = Hafta içi 09:00
+- `*/5 * * * *` = Every 5 min
+- `*/1 * * * *` = Every 1 min
+- `0 * * * *` = Every hour
+- `0 9 * * 1-5` = Weekdays at 09:00
