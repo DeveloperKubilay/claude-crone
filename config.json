@@ -1,5 +1,5 @@
 {
-  "checkIntervalHours": 24,
+  "checkIntervalHours": 12,
   "defaultClaudeFlags": [
     "--dangerously-skip-permissions"
   ]

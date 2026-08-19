@@ -11,6 +11,23 @@ const CLAUDE_FILE = path.join(__dirname, 'claude.json');
 const services = new Map();
 const hashes = new Map();
 
+const DEFAULT_CONFIG = {
+  checkIntervalHours: 12,
+  defaultClaudeFlags: [
+    "--dangerously-skip-permissions"
+  ]
+};
+
+function getConfig() {
+  if (fs.existsSync(CONFIG_FILE)) {
+    try {
+      const parsed = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
+      return { ...DEFAULT_CONFIG, ...parsed };
+    } catch (e) {}
+  }
+  return DEFAULT_CONFIG;
+}
+
 // 1. claude.json dosyasını sistem dizinlerine kopyala ve ortam değişkenlerini al
 function setupClaudeEnv() {
   const env = { ...process.env };
@@ -39,7 +56,11 @@ function setupClaudeEnv() {
 
 // 2. Servisleri tara ve zamanla
 function scanServices() {
-  if (!fs.existsSync(SERVICES_DIR)) return;
+  if (!fs.existsSync(SERVICES_DIR)) {
+    fs.mkdirSync(SERVICES_DIR, { recursive: true });
+    return;
+  }
+  const config = getConfig();
 
   for (const entry of fs.readdirSync(SERVICES_DIR, { withFileTypes: true })) {
     if (!entry.isDirectory()) continue;
@@ -72,11 +93,12 @@ function scanServices() {
       const task = cron.schedule(settings.cron, () => {
         const model = settings.model || 'otomasyon';
         const prompt = settings.prompt || 'CLAUDE.md içerisindeki talimatları yerine getir.';
+        const flags = settings.flags || config.defaultClaudeFlags || ['--dangerously-skip-permissions'];
         const env = setupClaudeEnv();
 
         console.log(`[${name}] Başlatıldı: ${new Date().toISOString()}`);
 
-        const child = spawn('claude', ['--dangerously-skip-permissions', '--model', model, '-p', prompt], {
+        const child = spawn('claude', [...flags, '--model', model, '-p', prompt], {
           cwd: dir,
           stdio: 'inherit',
           shell: true,
@@ -97,20 +119,13 @@ function scanServices() {
   }
 }
 
-// 3. Çalıştırma
-let checkHours = 24;
-if (fs.existsSync(CONFIG_FILE)) {
-  try {
-    const cfg = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
-    if (cfg.checkIntervalHours) checkHours = cfg.checkIntervalHours;
-  } catch (e) {}
-}
-
+// 3. Başlatma
+const initialConfig = getConfig();
 setupClaudeEnv();
 scanServices();
-setInterval(scanServices, checkHours * 60 * 60 * 1000);
+setInterval(scanServices, initialConfig.checkIntervalHours * 60 * 60 * 1000);
 
-console.log(`[Scheduler] Aktif. Kontrol sıklığı: ${checkHours} saat.`);
+console.log(`[Scheduler] Aktif. Kontrol sıklığı: ${initialConfig.checkIntervalHours} saat.`);
 
 process.on('SIGINT', () => process.exit(0));
 process.on('SIGTERM', () => process.exit(0));

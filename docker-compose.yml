@@ -8,10 +8,8 @@ services:
     environment:
       - TZ=Europe/Istanbul
       - NODE_ENV=production
-      - CHECK_INTERVAL_HOURS=24
     volumes:
       - ./services:/app/services
-      - ./send_msg.py:/app/send_msg.py
       - ./config.json:/app/config.json
       - ./claude.json:/app/claude.json
     logging:

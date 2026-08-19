@@ -6,6 +6,25 @@ Otomatik tarayıcı destekli cron işlemlerinizde kullanabileceğiniz otomasyon 
 
 ### 1. `docker-compose.yml` Dosyası
 
+```bash
+mkdir services
+nano claude.json
+nano docker-compose.yml
+```
+
+## ⚙️ `claude.json` Örneği
+
+```json
+{
+  "env": {
+    "ANTHROPIC_BASE_URL": "http://host.docker.internal:21045/v1",
+    "ANTHROPIC_API_KEY": "API_KEY_BURAYA"
+  }
+}
+```
+
+> Örnek bir servis ekleyin services klasöründeki örneği kullanabilirsiniz
+
 ```yaml
 services:
   claude-scheduler:
@@ -17,10 +36,8 @@ services:
     environment:
       - TZ=Europe/Istanbul
       - NODE_ENV=production
-      - CHECK_INTERVAL_HOURS=24
     volumes:
       - ./services:/app/services
-      - ./send_msg.py:/app/send_msg.py
       - ./config.json:/app/config.json
       - ./claude.json:/app/claude.json
     logging:
@@ -30,30 +47,8 @@ services:
         max-file: "3"
 ```
 
-### 2. İmajı Çekin & Başlatın
-
 ```bash
-# İmajı çekin
-docker pull ghcr.io/developerkubilay/claude-crone:latest
-
-# Özel model / provider veya ayar kullanacaksanız claude.json dosyasını düzenleyin:
-nano claude.json
-
-# Konteyneri arka planda başlatın
 docker compose up -d
-```
-
----
-
-## ⚙️ `claude.json` Örneği
-
-```json
-{
-  "env": {
-    "ANTHROPIC_BASE_URL": "http://host.docker.internal:21045/v1",
-    "ANTHROPIC_API_KEY": "API_KEY_BURAYA"
-  }
-}
 ```
 
 ---
