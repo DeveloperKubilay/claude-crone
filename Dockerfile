@@ -26,8 +26,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     procps \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Claude Code CLI globally
-RUN npm install -g @anthropic-ai/claude-code playwright
+# Install Claude Code CLI, Playwright, and Playwright MCP Server globally
+RUN npm install -g @anthropic-ai/claude-code playwright @modelcontextprotocol/server-playwright
 
 # Setup app directory
 WORKDIR /app
@@ -36,11 +36,12 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install
 
-# Install Playwright Chromium browser
-RUN npx playwright install chromium
+# Install Playwright Chromium browser and its system dependencies
+RUN npx playwright install --with-deps chromium
 
-# Ensure Claude config directories exist
-RUN mkdir -p /root/.claude
+# Ensure Claude config directories exist and pre-configure Playwright MCP
+RUN mkdir -p /root/.claude && \
+    echo '{"mcpServers":{"playwright":{"command":"npx","args":["-y","@modelcontextprotocol/server-playwright"]}}}' > /root/.claude/mcp.json
 
 # Copy application files
 COPY . .
