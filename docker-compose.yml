@@ -1,6 +1,6 @@
 services:
   claude-scheduler:
-    build: .
+    image: ghcr.io/developerkubilay/claude-crone:latest
     container_name: claude_automation_scheduler
     restart: unless-stopped
     environment:

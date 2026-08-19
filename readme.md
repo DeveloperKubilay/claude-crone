@@ -2,26 +2,48 @@
 
 Otomatik tarayıcı destekli cron işlemlerinizde kullanabileceğiniz otomasyon sistemi.
 
-## Kurulum & Çalıştırma
+## 🚀 Hızlı Başlangıç (Docker)
 
-1. Yapılandırmayı düzenleyin:
-```bash
-nano docker-compose.yml
+### 1. `docker-compose.yml` Dosyası
+
+```yaml
+services:
+  claude-scheduler:
+    image: ghcr.io/developerkubilay/claude-crone:latest
+    container_name: claude_automation_scheduler
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - CHECK_INTERVAL_HOURS=24
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+    volumes:
+      - ./services:/app/services
+      - ./send_msg.py:/app/send_msg.py
+      - ./config.json:/app/config.json
+      - ./claude.json:/root/.claude.json
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 ```
 
-2. Özel model / provider kullanacaksanız `claude.json` dosyasını oluşturun veya düzenleyin:
+### 2. İmajı Çekin & Başlatın
+
 ```bash
+# İmajı çekin
+docker pull ghcr.io/developerkubilay/claude-crone:latest
+
+# Özel model / provider kullanacaksanız claude.json dosyasını düzenleyin:
 nano claude.json
-```
 
-3. Konteyneri başlatın:
-```bash
+# Konteyneri arka planda başlatın
 docker compose up -d
 ```
 
 ---
 
-## Servis Yapısı & Örnek Kullanım
+## 📁 Servis Yapısı & Örnek Kullanım
 
 Her görev için `services/` altında bir klasör oluşturulur:
 
