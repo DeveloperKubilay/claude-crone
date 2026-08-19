@@ -17,8 +17,6 @@ services:
     environment:
       - NODE_ENV=production
       - CHECK_INTERVAL_HOURS=24
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
-      - ANTHROPIC_BASE_URL=${ANTHROPIC_BASE_URL:-http://host.docker.internal:21045/v1}
     volumes:
       - ./services:/app/services
       - ./send_msg.py:/app/send_msg.py
