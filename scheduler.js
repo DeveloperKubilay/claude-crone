@@ -1,98 +1,116 @@
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const { spawn } = require('child_process');
 const cron = require('node-cron');
 
 const SERVICES_DIR = path.join(__dirname, 'services');
-const services = new Map();
-const configHashes = new Map();
+const CONFIG_FILE = path.join(__dirname, 'config.json');
+const CLAUDE_FILE = path.join(__dirname, 'claude.json');
 
-// config.json'dan kontrol periyodunu oku (varsayılan: 24 saat)
-let checkIntervalHours = 24;
-if (fs.existsSync(path.join(__dirname, 'config.json'))) {
+const services = new Map();
+const hashes = new Map();
+
+// 1. claude.json dosyasını sistem dizinlerine kopyala ve ortam değişkenlerini al
+function setupClaudeEnv() {
+  const env = { ...process.env };
+  if (!fs.existsSync(CLAUDE_FILE)) return env;
+
   try {
-    const config = JSON.parse(fs.readFileSync(path.join(__dirname, 'config.json'), 'utf8'));
-    if (config.checkIntervalHours) checkIntervalHours = config.checkIntervalHours;
-  } catch (e) {}
+    const homeDir = os.homedir();
+    const claudeDir = path.join(homeDir, '.claude');
+    if (!fs.existsSync(claudeDir)) fs.mkdirSync(claudeDir, { recursive: true });
+
+    fs.copyFileSync(CLAUDE_FILE, path.join(homeDir, '.claude.json'));
+    fs.copyFileSync(CLAUDE_FILE, path.join(claudeDir, 'settings.json'));
+
+    const config = JSON.parse(fs.readFileSync(CLAUDE_FILE, 'utf8'));
+    if (config.env) Object.assign(env, config.env);
+
+    if (!env.ANTHROPIC_API_KEY && env.ANTHROPIC_AUTH_TOKEN) {
+      env.ANTHROPIC_API_KEY = env.ANTHROPIC_AUTH_TOKEN;
+    }
+  } catch (err) {
+    console.error('[Claude Setup] Hata:', err.message);
+  }
+
+  return env;
 }
 
+// 2. Servisleri tara ve zamanla
 function scanServices() {
   if (!fs.existsSync(SERVICES_DIR)) return;
-  const entries = fs.readdirSync(SERVICES_DIR, { withFileTypes: true });
 
-  for (const entry of entries) {
+  for (const entry of fs.readdirSync(SERVICES_DIR, { withFileTypes: true })) {
     if (!entry.isDirectory()) continue;
 
-    const serviceName = entry.name;
-    const servicePath = path.join(SERVICES_DIR, serviceName);
-    const settingsPath = path.join(servicePath, 'settings.json');
+    const name = entry.name;
+    const dir = path.join(SERVICES_DIR, name);
+    const settingsPath = path.join(dir, 'settings.json');
 
     if (!fs.existsSync(settingsPath)) continue;
 
-    loadService(serviceName, servicePath, settingsPath);
-  }
-}
+    try {
+      const raw = fs.readFileSync(settingsPath, 'utf8');
+      const settings = JSON.parse(raw);
+      const hash = raw.length + raw;
 
-function loadService(serviceName, servicePath, settingsPath) {
-  const content = fs.readFileSync(settingsPath, 'utf8');
-  const settings = JSON.parse(content);
-  const hash = hashString(content);
+      if (!settings.enabled) {
+        if (services.has(name)) {
+          services.get(name).stop();
+          services.delete(name);
+          hashes.delete(name);
+        }
+        continue;
+      }
 
-  if (!settings.enabled) {
-    if (services.has(serviceName)) {
-      services.get(serviceName).stop();
-      services.delete(serviceName);
-      configHashes.delete(serviceName);
+      if (!cron.validate(settings.cron)) continue;
+      if (services.has(name) && hashes.get(name) === hash) continue;
+
+      if (services.has(name)) services.get(name).stop();
+
+      const task = cron.schedule(settings.cron, () => {
+        const model = settings.model || 'otomasyon';
+        const prompt = settings.prompt || 'CLAUDE.md içerisindeki talimatları yerine getir.';
+        const env = setupClaudeEnv();
+
+        console.log(`[${name}] Başlatıldı: ${new Date().toISOString()}`);
+
+        const child = spawn('claude', ['--dangerously-skip-permissions', '--model', model, '-p', prompt], {
+          cwd: dir,
+          stdio: 'inherit',
+          shell: true,
+          env
+        });
+
+        child.on('exit', (code) => {
+          console.log(`[${name}] Bitti: ${code === 0 ? 'OK' : `Hata ${code}`}`);
+        });
+      });
+
+      services.set(name, task);
+      hashes.set(name, hash);
+      console.log(`[${name}] Zamanlandı: ${settings.cron} (${settings.model || 'otomasyon'})`);
+    } catch (e) {
+      console.error(`[${name}] Hata:`, e.message);
     }
-    return;
   }
-
-  if (!cron.validate(settings.cron)) return;
-  if (services.has(serviceName) && configHashes.get(serviceName) === hash) return;
-
-  if (services.has(serviceName)) {
-    services.get(serviceName).stop();
-  }
-
-  const task = cron.schedule(settings.cron, () => {
-    const model = settings.model || 'otomasyon';
-    const prompt = settings.prompt || 'CLAUDE.md içerisindeki talimatları yerine getir.';
-
-    console.log(`[${serviceName}] Çalıştırılıyor: ${new Date().toISOString()}`);
-
-    // Docker içinde tam yetkili ve soru sormadan çalışması için --dangerously-skip-permissions
-    const child = spawn('claude', ['--dangerously-skip-permissions', '--model', model, '-p', prompt], {
-      cwd: servicePath,
-      stdio: 'inherit',
-      shell: true
-    });
-
-    child.on('exit', (code) => {
-      console.log(`[${serviceName}] Tamamlandı: ${code === 0 ? 'OK' : `Hata ${code}`}`);
-    });
-  });
-
-  services.set(serviceName, task);
-  configHashes.set(serviceName, hash);
-  console.log(`[${serviceName}] Zamanlandı: ${settings.cron} (Model: ${settings.model || 'otomasyon'})`);
 }
 
-function checkUpdates() {
-  scanServices();
+// 3. Çalıştırma
+let checkHours = 24;
+if (fs.existsSync(CONFIG_FILE)) {
+  try {
+    const cfg = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
+    if (cfg.checkIntervalHours) checkHours = cfg.checkIntervalHours;
+  } catch (e) {}
 }
 
-function hashString(str) {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = ((hash << 5) - hash) + str.charCodeAt(i);
-    hash = hash & hash;
-  }
-  return hash;
-}
-
+setupClaudeEnv();
 scanServices();
-setInterval(checkUpdates, checkIntervalHours * 60 * 60 * 1000);
-console.log(`[Scheduler] Başlatıldı. Güncelleme kontrol sıklığı: ${checkIntervalHours} saat.`);
+setInterval(scanServices, checkHours * 60 * 60 * 1000);
+
+console.log(`[Scheduler] Aktif. Kontrol sıklığı: ${checkHours} saat.`);
 
 process.on('SIGINT', () => process.exit(0));
 process.on('SIGTERM', () => process.exit(0));

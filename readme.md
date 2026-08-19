@@ -22,7 +22,7 @@ services:
       - ./services:/app/services
       - ./send_msg.py:/app/send_msg.py
       - ./config.json:/app/config.json
-      - ./claude.json:/home/node/.claude/settings.json
+      - ./claude.json:/app/claude.json
     logging:
       driver: "json-file"
       options:
