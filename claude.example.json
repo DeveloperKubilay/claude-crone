@@ -9,7 +9,7 @@
   "mcpServers": {
     "playwright": {
       "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-playwright"]
+      "args": ["-y", "@playwright/mcp@latest"]
     }
   }
 }
