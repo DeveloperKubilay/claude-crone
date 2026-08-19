@@ -1,0 +1,6 @@
+{
+  "env": {
+    "ANTHROPIC_BASE_URL": "http://host.docker.internal:21045/v1",
+    "ANTHROPIC_API_KEY": "YOUR_API_KEY"
+  }
+}

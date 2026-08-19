@@ -15,13 +15,14 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
+      - TZ=Europe/Istanbul
       - NODE_ENV=production
       - CHECK_INTERVAL_HOURS=24
     volumes:
       - ./services:/app/services
       - ./send_msg.py:/app/send_msg.py
       - ./config.json:/app/config.json
-      - ./claude.json:/root/.claude.json
+      - ./claude.json:/home/node/.claude/settings.json
     logging:
       driver: "json-file"
       options:
@@ -35,11 +36,24 @@ services:
 # İmajı çekin
 docker pull ghcr.io/developerkubilay/claude-crone:latest
 
-# Özel model / provider kullanacaksanız claude.json dosyasını düzenleyin:
+# Özel model / provider veya ayar kullanacaksanız claude.json dosyasını düzenleyin:
 nano claude.json
 
 # Konteyneri arka planda başlatın
 docker compose up -d
+```
+
+---
+
+## ⚙️ `claude.json` Örneği
+
+```json
+{
+  "env": {
+    "ANTHROPIC_BASE_URL": "http://host.docker.internal:21045/v1",
+    "ANTHROPIC_API_KEY": "API_KEY_BURAYA"
+  }
+}
 ```
 
 ---

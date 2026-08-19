@@ -2,6 +2,7 @@ FROM node:20-bookworm-slim
 
 # Set non-interactive frontend
 ENV DEBIAN_FRONTEND=noninteractive
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 
 # Install Python3, curl, git, and necessary system dependencies for Playwright Chromium
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -29,6 +30,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install Claude Code CLI, Playwright, and official Playwright MCP Server globally
 RUN npm install -g @anthropic-ai/claude-code playwright @playwright/mcp
 
+# Install Playwright Chromium browser into shared directory
+RUN mkdir -p /ms-playwright && \
+    npx playwright install --with-deps chromium && \
+    chmod -R 777 /ms-playwright
+
 # Setup app directory
 WORKDIR /app
 
@@ -36,15 +42,18 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install
 
-# Install Playwright Chromium browser and its system dependencies
-RUN npx playwright install --with-deps chromium
-
-# Ensure Claude config directories exist and pre-configure Playwright MCP
-RUN mkdir -p /root/.claude && \
-    echo '{"mcpServers":{"playwright":{"command":"npx","args":["-y","@playwright/mcp@latest"]}}}' > /root/.claude/mcp.json
+# Setup non-root user (node) environment for Claude Code CLI
+RUN mkdir -p /home/node/.claude && \
+    echo '{"mcpServers":{"playwright":{"command":"npx","args":["-y","@playwright/mcp@latest"]}}}' > /home/node/.claude/mcp.json
 
 # Copy application files
 COPY . .
+
+# Adjust permissions for non-root user
+RUN chown -R node:node /app /home/node
+
+# Switch to non-root user (required by Claude Code CLI for --dangerously-skip-permissions)
+USER node
 
 # Default environment variables
 ENV NODE_ENV=production

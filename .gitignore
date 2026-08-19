@@ -9,7 +9,7 @@ __pycache__/
 .env
 .env.*
 claude.json
-.claude/
+send_msg.py
 
 # Logs
 *.log
@@ -17,13 +17,8 @@ npm-debug.log*
 
 # OS specific
 .DS_Store
-Thumbs.dbmsg.py
-
-
+Thumbs.db
 
 services/*
 !services/deneme
 package-lock.json
-
-__pycache__/
-send_msg.py
