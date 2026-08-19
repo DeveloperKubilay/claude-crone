@@ -1,0 +1,19 @@
+services:
+  claude-scheduler:
+    build: .
+    container_name: claude_automation_scheduler
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - CHECK_INTERVAL_HOURS=24
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+    volumes:
+      - ./services:/app/services
+      - ./send_msg.py:/app/send_msg.py
+      - ./config.json:/app/config.json
+      - ./claude.json:/root/.claude.json
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Environment & Secrets
+.env
+.env.*
+claude.json
+.claude/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS specific
+.DS_Store
+Thumbs.dbmsg.py
+
+
+
+services/*
+!services/deneme
+package-lock.json
+
+__pycache__/
+send_msg.py

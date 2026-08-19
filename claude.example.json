@@ -1,0 +1,9 @@
+{
+  "provider": "custom",
+  "apiKey": "YOUR_API_KEY_OR_TOKEN_HERE",
+  "baseUrl": "https://api.anthropic.com",
+  "model": "claude-3-5-sonnet-20241022",
+  "options": {
+    "temperature": 0.7
+  }
+}
